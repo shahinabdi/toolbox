@@ -1,0 +1,6 @@
+feature:
+  - scripts/**
+  - python/**
+bug:
+  - fixes/**
+  - patches/**
