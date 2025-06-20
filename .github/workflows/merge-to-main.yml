@@ -3,7 +3,7 @@ name: Auto Merge to Main with Tag
 on:
   push:
     branches:
-      - develop
+      - dev
 
 jobs:
   merge-to-main:
@@ -41,7 +41,7 @@ jobs:
           CUR_MAJOR=$(echo "$CURRENT" | cut -d. -f2)
           CUR_MINOR=$(echo "$CURRENT" | cut -d. -f3)
 
-          LABELS=$(gh pr list -s merged -B develop --json labels -q '.[0].labels[].name' || echo "")
+          LABELS=$(gh pr list -s merged -B dev --json labels -q '.[0].labels[].name' || echo "")
 
           echo "Found labels: $LABELS"
 
@@ -62,14 +62,14 @@ jobs:
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git checkout develop
-          git pull origin develop
+          git checkout dev
+          git pull origin dev
           git tag ${{ steps.next_tag.outputs.new_tag }}
           git push origin ${{ steps.next_tag.outputs.new_tag }}
 
-      - name: Merge develop into main
+      - name: Merge dev into main
         run: |
           git checkout main
           git pull origin main
-          git merge develop --no-ff -m "Merge develop into main: ${{ steps.next_tag.outputs.new_tag }}"
+          git merge dev --no-ff -m "Merge dev into main: ${{ steps.next_tag.outputs.new_tag }}"
           git push origin main
