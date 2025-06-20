@@ -18,8 +18,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up GitHub CLI
-        uses: cli/cli-action@v2
+      - name: Install GitHub CLI
+        run: |
+            sudo apt update
+            sudo apt install -y gh
 
       - name: Get last tag
         id: get_tag
