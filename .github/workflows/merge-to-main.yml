@@ -46,8 +46,25 @@ jobs:
           echo "Current tag: $CURRENT"
           echo "Major: $CUR_MAJOR | Minor: $CUR_MINOR"
 
-          LABELS=$(gh pr list -s merged -B dev --json labels -q '.[0].labels[].name' || echo "")
-          echo "Found labels: $LABELS"
+          # Try to get labels from last merged PR into dev
+          LABELS=$(gh pr list -s merged -B dev --json labels -q '.[0].labels[].name' 2>/dev/null || echo "")
+
+          if [ -z "$LABELS" ]; then
+            echo "⚠️  No PR labels found. Falling back to commit message detection..."
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+            echo "Commit message: $COMMIT_MSG"
+
+            if echo "$COMMIT_MSG" | grep -iE '^feat:|^feature:'; then
+              LABELS="feature"
+            elif echo "$COMMIT_MSG" | grep -iE '^fix:|^bug:|^patch:'; then
+              LABELS="bug"
+            else
+              echo "❌ Unable to determine change type from commit or PR. Aborting."
+              exit 1
+            fi
+          fi
+
+          echo "Detected labels: $LABELS"
 
           if echo "$LABELS" | grep -q "feature"; then
             NEW_MAJOR=$((10#$CUR_MAJOR + 1))
