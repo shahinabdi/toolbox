@@ -1,0 +1,138 @@
+name: Auto Merge to Main with Tag
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  merge-to-main:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get last tag
+        id: get_tag
+        run: |
+          git fetch --tags
+          LAST_TAG=$(git tag --list '0.*.*' --sort=-v:refname | head -n 1)
+          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate next tag
+        id: next_tag
+        run: |
+          echo "Current tag: ${{ steps.get_tag.outputs.last_tag }}"
+          CURRENT="${{ steps.get_tag.outputs.last_tag }}"
+          CUR_MAJOR=$(echo $CURRENT | cut -d. -f2)
+          CUR_MINOR=$(echo $CURRENT | cut -d. -f3)
+
+          LABELS=$(gh pr list -s merged -B develop --json labels -q '.[0].labels[].name' || echo "")
+          echo "Labels: $LABELS"
+
+          if echo "$LABELS" | grep -q "feature"; then
+            NEW_MAJOR=$((10#$CUR_MAJOR + 1))
+            NEW_TAG="0.${NEW_MAJOR}.00"
+          elif echo "$LABELS" | grep -q "bug"; then
+            NEW_MINOR=$((10#$CUR_MINOR + 1))
+            NEW_TAG="0.${CUR_MAJOR}.${NEW_MINOR}"
+          else
+            echo "No valid label found. Exiting."
+            exit 1
+          fi
+
+          echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout develop
+          git pull origin develop
+          git tag ${{ steps.next_tag.outputs.new_tag }}
+          git push origin ${{ steps.next_tag.outputs.new_tag }}
+
+      - name: Merge develop into main
+        run: |
+          git checkout main
+          git pull origin main
+          git merge develop --no-ff -m "Merge develop into main: ${{ steps.next_tag.outputs.new_tag }}"
+          git push origin main
+name: Auto Merge to Main with Tag
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  merge-to-main:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get last tag
+        id: get_tag
+        run: |
+          git fetch --tags
+          LAST_TAG=$(git tag --list '0.*.*' --sort=-v:refname | head -n 1)
+          echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Calculate next tag
+        id: next_tag
+        run: |
+          echo "Current tag: ${{ steps.get_tag.outputs.last_tag }}"
+          CURRENT="${{ steps.get_tag.outputs.last_tag }}"
+          CUR_MAJOR=$(echo $CURRENT | cut -d. -f2)
+          CUR_MINOR=$(echo $CURRENT | cut -d. -f3)
+
+          LABELS=$(gh pr list -s merged -B develop --json labels -q '.[0].labels[].name' || echo "")
+          echo "Labels: $LABELS"
+
+          if echo "$LABELS" | grep -q "feature"; then
+            NEW_MAJOR=$((10#$CUR_MAJOR + 1))
+            NEW_TAG="0.${NEW_MAJOR}.00"
+          elif echo "$LABELS" | grep -q "bug"; then
+            NEW_MINOR=$((10#$CUR_MINOR + 1))
+            NEW_TAG="0.${CUR_MAJOR}.${NEW_MINOR}"
+          else
+            echo "No valid label found. Exiting."
+            exit 1
+          fi
+
+          echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create tag
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git checkout develop
+          git pull origin develop
+          git tag ${{ steps.next_tag.outputs.new_tag }}
+          git push origin ${{ steps.next_tag.outputs.new_tag }}
+
+      - name: Merge develop into main
+        run: |
+          git checkout main
+          git pull origin main
+          git merge develop --no-ff -m "Merge develop into main: ${{ steps.next_tag.outputs.new_tag }}"
+          git push origin main

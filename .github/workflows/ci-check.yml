@@ -1,0 +1,36 @@
+name: CI Checks on Develop
+
+on:
+  pull_request:
+    branches: [develop]
+
+jobs:
+  lint-and-security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: pip install ruff
+
+      - name: Lint Python (ruff)
+        run: ruff .
+
+      - name: Lint Shell Scripts
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          find . -type f -name "*.sh" -exec shellcheck {} +
+
+      - name: Run safety (optional)
+        run: |
+          pip install safety
+          safety check || true  # won't fail the build
