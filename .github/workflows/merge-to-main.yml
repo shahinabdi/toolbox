@@ -20,14 +20,18 @@ jobs:
 
       - name: Install GitHub CLI
         run: |
-            sudo apt update
-            sudo apt install -y gh
+          sudo apt update
+          sudo apt install -y gh
 
       - name: Get last tag
         id: get_tag
         run: |
           git fetch --tags
           LAST_TAG=$(git tag --list '0.*.*' --sort=-v:refname | head -n 1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG="0.000.00"
+          fi
+          echo "last_tag=$LAST_TAG"
           echo "last_tag=$LAST_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Calculate next tag
@@ -36,15 +40,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           CURRENT="${{ steps.get_tag.outputs.last_tag }}"
-          if [ -z "$CURRENT" ]; then
-            CURRENT="0.000.00"
-          fi
-
           CUR_MAJOR=$(echo "$CURRENT" | cut -d. -f2)
           CUR_MINOR=$(echo "$CURRENT" | cut -d. -f3)
 
-          LABELS=$(gh pr list -s merged -B dev --json labels -q '.[0].labels[].name' || echo "")
+          echo "Current tag: $CURRENT"
+          echo "Major: $CUR_MAJOR | Minor: $CUR_MINOR"
 
+          LABELS=$(gh pr list -s merged -B dev --json labels -q '.[0].labels[].name' || echo "")
           echo "Found labels: $LABELS"
 
           if echo "$LABELS" | grep -q "feature"; then
@@ -54,13 +56,14 @@ jobs:
             NEW_MINOR=$((10#$CUR_MINOR + 1))
             NEW_TAG="0.${CUR_MAJOR}.${NEW_MINOR}"
           else
-            echo "No recognized label found (feature or bug/patch)."
+            echo "❌ No recognized label found (feature or bug/patch)."
             exit 1
           fi
 
+          echo "✅ New tag will be: $NEW_TAG"
           echo "new_tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
 
-      - name: Create tag
+      - name: Create and push tag
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
