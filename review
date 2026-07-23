@@ -1,0 +1,16 @@
+_FIELDS: tuple[str, ...] = (
+    "id", "name", "account_id", "project_trigramm", "contact_email",
+    "alias", "environment", "status", "active",
+    "creation_date", "modification_date", "deletion_date",
+    "primary_availability_zone", "network", "node_count",
+    # ...
+)
+
+@classmethod
+def from_broker(cls, broker) -> Self:
+    return cls(
+        data={
+            field: serialize_value(read_attribute(broker, field))
+            for field in _FIELDS
+        }
+    )
